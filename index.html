@@ -61,6 +61,14 @@
 <a class="sticky-cta btn" href="#order">🔥 ORDER NOW — Rs. 99</a>
 
 <div class="modal" id="modal"><div class="modal-box"><div class="loading" id="loading"><div style="font-size:35px">⏳</div><h2>Processing Order</h2><p style="color:var(--muted)">Please wait while we prepare your order confirmation.</p><div class="count" id="count">3</div></div><div class="success" id="success"><div class="check">✓</div><h2>Thank You For Your Order!</h2><p>Your order has been received successfully. <b>Delivery will be within 4 to 6 days.</b></p><div class="delivery-note">🚚 Your order will be delivered within <b>4–6 days</b>.</div><div id="successText" style="text-align:left;background:#0f1d27;padding:15px;border-radius:14px;font-size:14px"></div><button class="btn" style="margin-top:16px" onclick="closeModal()">CONTINUE SHOPPING</button></div></div></div>
+
+<script>
+/* ================= GOOGLE SHEETS =================
+   After deploying the Apps Script as a Web App, paste its /exec URL below.
+*/
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcfyA8aBoXqKq8a_l7pHvDBGC_v1vzVUkK_3pSlF_rPXDhD5RKiTwri9rWNXa42hZIXg/exec";
+</script>
+
 <script>
 const form=document.getElementById('orderForm'),modal=document.getElementById('modal'),count=document.getElementById('count'),loading=document.getElementById('loading'),success=document.getElementById('success'),successText=document.getElementById('successText'),qtyInput=document.getElementById('qty'),orderSection=document.getElementById('order');
 function openOrderForm(e){if(e)e.preventDefault();orderSection.classList.add('show');document.body.style.overflow='hidden';setTimeout(()=>document.querySelector('#order input[name=name]')?.focus(),120);}
@@ -71,7 +79,74 @@ function getOrderTotals(){const qty=Math.max(1,parseInt(qtyInput.value||1,10));c
 function updateSummary(){const o=getOrderTotals();document.getElementById('summaryQty').textContent=o.qty;document.getElementById('summaryProduct').textContent=money(o.product);document.getElementById('summaryDelivery').textContent=money(o.delivery);document.getElementById('summaryTotal').textContent=money(o.total);document.getElementById('summaryAdvance').textContent=money(o.advance);document.getElementById('summaryRemaining').textContent=money(o.remaining);document.getElementById('paymentAdvanceInline').textContent=money(o.advance)+' ('+o.pct+'%)';document.getElementById('advanceLabel').textContent='PAY '+o.pct+'% IN ADVANCE';}
 qtyInput.addEventListener('change',updateSummary);
 document.getElementById('advanceOption').addEventListener('change',updateSummary);qtyInput.addEventListener('input',updateSummary);updateSummary();
-form.addEventListener('submit',e=>{e.preventDefault();const o=getOrderTotals();modal.classList.add('show');loading.style.display='block';success.classList.remove('show');let n=3;count.textContent=n;const timer=setInterval(()=>{n--;count.textContent=n;if(n<=0){clearInterval(timer);loading.style.display='none';success.classList.add('show');const fd=new FormData(form);speakThankYou();successText.innerHTML='<b>Customer:</b> '+esc(fd.get('name'))+'<br><b>Phone:</b> '+esc(fd.get('phone'))+'<br><b>City:</b> '+esc(fd.get('city'))+'<br><b>Quantity:</b> '+o.qty+' pcs<br><b>Product:</b> Nila Powder — '+money(o.product)+'<br><b>Delivery:</b> '+money(o.delivery)+'<br><b>Total:</b> '+money(o.total)+'<br><b>Advance ('+o.pct+'%):</b> '+money(o.advance)+'<br><b>Remaining:</b> '+money(o.remaining)+'<br><b>Payment:</b> Easypaisa / Meezan Bank';}},1000)});
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  const o=getOrderTotals();
+  const fd=new FormData(form);
+  const orderId='ORD-'+Date.now();
+  const orderData={
+    order_id:orderId,
+    name:fd.get('name')||'',
+    phone:fd.get('phone')||'',
+    city:fd.get('city')||'',
+    quantity:o.qty,
+    address:fd.get('address')||'',
+    landmark:fd.get('landmark')||'',
+    advance_option:fd.get('advance_option')||'70',
+    payment_method:fd.get('payment_method')||'',
+    sender_name:fd.get('sender_name')||'',
+    product:'Moroccan Nila Powder 50g',
+    product_amount:o.product,
+    delivery_amount:o.delivery,
+    total_amount:o.total,
+    advance_amount:o.advance,
+    remaining_amount:o.remaining,
+    payment_screenshot_whatsapp:'0320-2419746'
+  };
+
+  modal.classList.add('show');
+  loading.style.display='block';
+  success.classList.remove('show');
+  let n=3;
+  count.textContent=n;
+
+  try{
+    if(GOOGLE_SCRIPT_URL && !GOOGLE_SCRIPT_URL.includes('PASTE_YOUR_')){
+      // Don't make the customer wait for Google Sheets.
+      // Send the order in the background and show Thank You immediately.
+      fetch(GOOGLE_SCRIPT_URL,{
+        method:'POST',
+        mode:'no-cors',
+        headers:{'Content-Type':'text/plain;charset=utf-8'},
+        body:JSON.stringify(orderData),
+        keepalive:true
+      }).catch(err => console.warn('Google Sheets background save failed:', err));
+    }
+  }catch(err){
+    console.warn('Google Sheets submission failed:',err);
+  }
+
+  const timer=setInterval(()=>{
+    n--;
+    count.textContent=n;
+    if(n<=0){
+      clearInterval(timer);
+      loading.style.display='none';
+      success.classList.add('show');
+      speakThankYou();
+      successText.innerHTML=
+        '<b>Order ID:</b> '+esc(orderId)+
+        '<br><b>Customer:</b> '+esc(orderData.name)+
+        '<br><b>Phone:</b> '+esc(orderData.phone)+
+        '<br><b>City:</b> '+esc(orderData.city)+
+        '<br><b>Quantity:</b> '+o.qty+' pcs'+
+        '<br><b>Total:</b> '+money(o.total)+
+        '<br><b>Advance ('+o.pct+'%):</b> '+money(o.advance)+
+        '<br><b>Remaining:</b> '+money(o.remaining)+
+        '<br><b>Payment:</b> '+esc(orderData.payment_method);
+    }
+  },1000);
+});
 
 function speakThankYou(){
   try{
@@ -98,5 +173,45 @@ function updateSaleCountdown(){
 }
 updateSaleCountdown(); setInterval(updateSaleCountdown,1000);
 </script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  function resetOrderFormAfterContinueShopping() {
+    const form =
+      document.querySelector('#orderForm') ||
+      document.querySelector('form.order-form') ||
+      document.querySelector('form');
+
+    if (form) form.reset();
+
+    // Reset common custom order-form state back to the initial quantity.
+    document.querySelectorAll('input[type="number"]').forEach(function (el) {
+      if (el.name && /qty|quantity/i.test(el.name)) el.value = '1';
+    });
+
+    // Hide/reset payment-dependent or validation messages if present.
+    document.querySelectorAll('.error-message, .form-error, .field-error').forEach(function (el) {
+      el.textContent = '';
+      el.style.display = 'none';
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    const el = e.target.closest('button, a');
+    if (!el) return;
+
+    const label = (el.textContent || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    const idClass = ((el.id || '') + ' ' + (el.className || '')).toLowerCase();
+
+    if (
+      label.includes('continue shopping') ||
+      idClass.includes('continue-shopping')
+    ) {
+      resetOrderFormAfterContinueShopping();
+    }
+  });
+});
+</script>
+
 </body>
 </html>
