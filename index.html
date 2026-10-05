@@ -23,6 +23,24 @@
 @media(max-width:600px){.order-modal-section{padding-top:64px}.order-modal-close{top:70px;right:12px}.order-modal-section .form-card{border-radius:18px}.order-modal-section .summary{border-radius:18px}.proof{font-size:12px}}
 .delivery-note{margin:14px 0;padding:12px 14px;border-radius:12px;background:rgba(100,231,255,.08);border:1px solid rgba(100,231,255,.16);font-size:14px;line-height:1.5}.success h2{margin-bottom:8px}@media(max-width:600px){.delivery-note{font-size:13px}}
 </style></style>
+<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1897361191334822');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1897361191334822&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
+
 </head>
 <body>
 <div class="topbar"><span class="sale">🔥 10.10 MEGA SALE</span><span>90% OFF</span><span>🚚 Delivery Rs. 250</span><span>⚡ 70% Advance Payment</span></div>
@@ -67,8 +85,29 @@
    After deploying the Apps Script as a Web App, paste its /exec URL below.
 */
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzcfyA8aBoXqKq8a_l7pHvDBGC_v1vzVUkK_3pSlF_rPXDhD5RKiTwri9rWNXa42hZIXg/exec";
+
 </script>
 
+<script>
+(function () {
+  let purchaseTracked = false;
+
+  window.trackMetaPurchase = function (value, orderId) {
+    if (purchaseTracked || typeof window.fbq !== 'function') return;
+    purchaseTracked = true;
+
+    const amount = Number(value) || 0;
+    fbq('track', 'Purchase', {
+      value: amount,
+      currency: 'PKR',
+      content_name: 'Moroccan Beauty Pakistan Nila Powder 50g',
+      content_type: 'product',
+      content_ids: ['moroccan-nila-powder-50g'],
+      order_id: orderId || undefined
+    });
+  };
+})();
+</script>
 <script>
 const form=document.getElementById('orderForm'),modal=document.getElementById('modal'),count=document.getElementById('count'),loading=document.getElementById('loading'),success=document.getElementById('success'),successText=document.getElementById('successText'),qtyInput=document.getElementById('qty'),orderSection=document.getElementById('order');
 function openOrderForm(e){if(e)e.preventDefault();orderSection.classList.add('show');document.body.style.overflow='hidden';setTimeout(()=>document.querySelector('#order input[name=name]')?.focus(),120);}
@@ -133,6 +172,11 @@ form.addEventListener('submit',async e=>{
       clearInterval(timer);
       loading.style.display='none';
       success.classList.add('show');
+
+      // Meta Pixel: count this as a Purchase only after the order reaches
+      // the successful Thank You screen. It is protected against duplicates.
+      window.trackMetaPurchase(o.total, orderId);
+
       speakThankYou();
       successText.innerHTML=
         '<b>Order ID:</b> '+esc(orderId)+
@@ -212,6 +256,9 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 });
 </script>
+
+
+
 
 </body>
 </html>
